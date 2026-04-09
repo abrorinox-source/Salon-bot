@@ -5,6 +5,7 @@ CRM va adminga xabar yubormasdan ishlaydigan demo Telegram bot.
 ## Funksiyalar
 
 - 3 tilda start: O'zbekcha, Русский, English
+- Boshlanishida interfeys tanlash: `Client` yoki `Admin`
 - Tilga mos asosiy menyu:
   - Services / Xizmatlar / Услуги
   - Book Appointment / Yozilish / Записаться
@@ -18,6 +19,7 @@ CRM va adminga xabar yubormasdan ishlaydigan demo Telegram bot.
   5. Tasdiqlash xabari
 - Demo reminder: 90 soniyadan keyin avtomatik eslatma
 - Ask a Question: avtomatik javob (adminga yuborilmaydi)
+- Admin demo menyu (DBsiz, in-memory): Dashboard, Oxirgi yozuvlar, Oxirgi savollar
 
 ## O'rnatish
 
@@ -75,6 +77,7 @@ Render cron ping misol:
 ## Eslatma
 
 - Bu loyiha Telegram demo sifatida tayyorlangan.
+- Database ishlatilmaydi (demo ma'lumotlar xotirada saqlanadi).
 - CRM yo'q.
 - Adminga xabar yuborish yo'q.
 - Reminder demo uchun 1-2 daqiqa o'rniga 90 soniya qilib qo'yilgan.

@@ -30,6 +30,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+ROLE_CLIENT = "client"
+ROLE_ADMIN = "admin"
+ROLE_BUTTON_TO_CODE = {
+    "🙋‍♀️ Client / Klient": ROLE_CLIENT,
+    "👩‍💼 Admin": ROLE_ADMIN,
+}
+
+DEMO_BOOKINGS: list[dict] = []
+DEMO_QUESTIONS: list[dict] = []
+
 
 @dataclass(frozen=True)
 class Service:
@@ -81,11 +91,14 @@ TIME_SLOTS = [
 I18N = {
     "uz": {
         "welcome": "Xush kelibsiz 💖 Demo salon botiga hush kelibsiz.",
+        "choose_interface": "Interfeysni tanlang:",
         "choose_language": "Tilni tanlang:",
         "menu_services": "Xizmatlar",
         "menu_book": "Yozilish",
         "menu_ask": "Savol berish",
+        "menu_switch_interface": "Interfeysni almashtirish",
         "menu_text": "Asosiy menyu ✨",
+        "client_only": "Bu bo'lim faqat klient interfeysi uchun.",
         "services_title": "Xizmatlarimiz 💆‍♀️",
         "book_button": "Yozilish",
         "book_step_service": "Qaysi xizmatni tanlaysiz?",
@@ -97,17 +110,29 @@ I18N = {
         "reminder": "Eslatma: {service} vaqti yaqinlashmoqda 💖",
         "ask_prompt": "Savolingizni yuboring 💬",
         "ask_reply": "Sizning savolingiz qabul qilindi, administrator javob beradi 💬",
+        "admin_menu_text": "Admin menyu 👩‍💼",
+        "admin_menu_dashboard": "Dashboard",
+        "admin_menu_bookings": "Yozuvlar",
+        "admin_menu_questions": "Savollar",
+        "admin_dashboard": "Demo statistikasi\n• Jami yozuvlar: {bookings}\n• Jami savollar: {questions}",
+        "admin_empty_bookings": "Hozircha yozuvlar yo'q.",
+        "admin_empty_questions": "Hozircha savollar yo'q.",
+        "admin_bookings_title": "Oxirgi yozuvlar:",
+        "admin_questions_title": "Oxirgi savollar:",
         "today": "Bugun",
         "tomorrow": "Ertaga",
         "lang_name": "🇺🇿 O'zbekcha",
     },
     "ru": {
         "welcome": "Добро пожаловать 💖 Это демо-бот салона.",
+        "choose_interface": "Выберите интерфейс:",
         "choose_language": "Выберите язык:",
         "menu_services": "Услуги",
         "menu_book": "Записаться",
         "menu_ask": "Задать вопрос",
+        "menu_switch_interface": "Сменить интерфейс",
         "menu_text": "Главное меню ✨",
+        "client_only": "Этот раздел доступен только клиенту.",
         "services_title": "Наши услуги 💆‍♀️",
         "book_button": "Записаться",
         "book_step_service": "Выберите услугу:",
@@ -119,17 +144,29 @@ I18N = {
         "reminder": "Напоминание: {service} скоро начинается 💖",
         "ask_prompt": "Отправьте ваш вопрос 💬",
         "ask_reply": "Ваш вопрос принят, администратор ответит 💬",
+        "admin_menu_text": "Меню админа 👩‍💼",
+        "admin_menu_dashboard": "Дашборд",
+        "admin_menu_bookings": "Записи",
+        "admin_menu_questions": "Вопросы",
+        "admin_dashboard": "Демо-статистика\n• Всего записей: {bookings}\n• Всего вопросов: {questions}",
+        "admin_empty_bookings": "Пока нет записей.",
+        "admin_empty_questions": "Пока нет вопросов.",
+        "admin_bookings_title": "Последние записи:",
+        "admin_questions_title": "Последние вопросы:",
         "today": "Сегодня",
         "tomorrow": "Завтра",
         "lang_name": "🇷🇺 Русский",
     },
     "en": {
         "welcome": "Welcome 💖 This is a beauty salon demo bot.",
+        "choose_interface": "Choose interface:",
         "choose_language": "Choose your language:",
         "menu_services": "Services",
         "menu_book": "Book Appointment",
         "menu_ask": "Ask a Question",
+        "menu_switch_interface": "Switch Interface",
         "menu_text": "Main menu ✨",
+        "client_only": "This section is for client interface only.",
         "services_title": "Our Services 💆‍♀️",
         "book_button": "Book Appointment",
         "book_step_service": "Choose a service:",
@@ -141,6 +178,15 @@ I18N = {
         "reminder": "Reminder: Your {service} appointment is coming up 💖",
         "ask_prompt": "Send your question 💬",
         "ask_reply": "Your question has been received, administrator will respond 💬",
+        "admin_menu_text": "Admin menu 👩‍💼",
+        "admin_menu_dashboard": "Dashboard",
+        "admin_menu_bookings": "Bookings",
+        "admin_menu_questions": "Questions",
+        "admin_dashboard": "Demo stats\n• Total bookings: {bookings}\n• Total questions: {questions}",
+        "admin_empty_bookings": "No bookings yet.",
+        "admin_empty_questions": "No questions yet.",
+        "admin_bookings_title": "Latest bookings:",
+        "admin_questions_title": "Latest questions:",
         "today": "Today",
         "tomorrow": "Tomorrow",
         "lang_name": "🇬🇧 English",
@@ -162,12 +208,31 @@ def language_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
-def menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
+def role_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [["🙋‍♀️ Client / Klient", "👩‍💼 Admin"]],
+        resize_keyboard=True,
+    )
+
+
+def client_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
             [t(lang, "menu_services")],
             [t(lang, "menu_book")],
             [t(lang, "menu_ask")],
+            [t(lang, "menu_switch_interface")],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def admin_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [
+            [t(lang, "admin_menu_dashboard")],
+            [t(lang, "admin_menu_bookings"), t(lang, "admin_menu_questions")],
+            [t(lang, "menu_switch_interface")],
         ],
         resize_keyboard=True,
     )
@@ -216,14 +281,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.effective_message.reply_text(
         "\n".join([I18N["uz"]["welcome"], I18N["ru"]["welcome"], I18N["en"]["welcome"]])
         + "\n\n"
-        + "\n".join([I18N["uz"]["choose_language"], I18N["ru"]["choose_language"], I18N["en"]["choose_language"]]),
-        reply_markup=language_keyboard(),
+        + "\n".join([I18N["uz"]["choose_interface"], I18N["ru"]["choose_interface"], I18N["en"]["choose_interface"]]),
+        reply_markup=role_keyboard(),
     )
 
 
 async def show_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     lang = context.user_data.get("lang", "en")
-    await update.effective_message.reply_text(t(lang, "menu_text"), reply_markup=menu_keyboard(lang))
+    role = context.user_data.get("role")
+    if role == ROLE_ADMIN:
+        await update.effective_message.reply_text(t(lang, "admin_menu_text"), reply_markup=admin_menu_keyboard(lang))
+        return
+    await update.effective_message.reply_text(t(lang, "menu_text"), reply_markup=client_menu_keyboard(lang))
 
 
 async def show_services(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -235,6 +304,38 @@ async def show_services(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             [[InlineKeyboardButton(t(lang, "book_button"), callback_data=f"quick_book:{service.key}")]]
         )
         await update.effective_message.reply_text(text, reply_markup=keyboard)
+
+
+async def show_admin_dashboard(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    lang = context.user_data.get("lang", "en")
+    await update.effective_message.reply_text(
+        t(lang, "admin_dashboard").format(bookings=len(DEMO_BOOKINGS), questions=len(DEMO_QUESTIONS)),
+        reply_markup=admin_menu_keyboard(lang),
+    )
+
+
+async def show_admin_bookings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    lang = context.user_data.get("lang", "en")
+    if not DEMO_BOOKINGS:
+        await update.effective_message.reply_text(t(lang, "admin_empty_bookings"), reply_markup=admin_menu_keyboard(lang))
+        return
+
+    lines = [t(lang, "admin_bookings_title")]
+    for item in DEMO_BOOKINGS[-10:]:
+        lines.append(f"• {item['service']} | {item['time']} | {item['name']} | {item['phone']}")
+    await update.effective_message.reply_text("\n".join(lines), reply_markup=admin_menu_keyboard(lang))
+
+
+async def show_admin_questions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    lang = context.user_data.get("lang", "en")
+    if not DEMO_QUESTIONS:
+        await update.effective_message.reply_text(t(lang, "admin_empty_questions"), reply_markup=admin_menu_keyboard(lang))
+        return
+
+    lines = [t(lang, "admin_questions_title")]
+    for item in DEMO_QUESTIONS[-10:]:
+        lines.append(f"• {item['name']}: {item['text']}")
+    await update.effective_message.reply_text("\n".join(lines), reply_markup=admin_menu_keyboard(lang))
 
 
 async def start_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, service_key: str | None = None) -> None:
@@ -263,6 +364,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await query.answer()
 
     lang = context.user_data.get("lang", "en")
+    if context.user_data.get("role") != ROLE_CLIENT:
+        await query.message.reply_text(t(lang, "client_only"), reply_markup=admin_menu_keyboard(lang))
+        return
     data = query.data or ""
 
     if data.startswith("quick_book:"):
@@ -290,12 +394,28 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     message = update.effective_message
     text = (message.text or "").strip()
 
-    # Step 0: Language selection
+    # Step 0: Interface selection
+    if text in ROLE_BUTTON_TO_CODE:
+        context.user_data["role"] = ROLE_BUTTON_TO_CODE[text]
+        await message.reply_text(
+            "\n".join([I18N["uz"]["choose_language"], I18N["ru"]["choose_language"], I18N["en"]["choose_language"]]),
+            reply_markup=language_keyboard(),
+        )
+        return
+
+    if "role" not in context.user_data:
+        await message.reply_text(
+            "\n".join([I18N["uz"]["choose_interface"], I18N["ru"]["choose_interface"], I18N["en"]["choose_interface"]]),
+            reply_markup=role_keyboard(),
+        )
+        return
+
+    # Step 1: Language selection
     if text in LANG_BUTTON_TO_CODE:
         lang = LANG_BUTTON_TO_CODE[text]
         context.user_data["lang"] = lang
         context.user_data["state"] = "idle"
-        await message.reply_text(t(lang, "menu_text"), reply_markup=menu_keyboard(lang))
+        await show_menu(update, context)
         return
 
     lang = context.user_data.get("lang")
@@ -306,7 +426,29 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
         return
 
+    role = context.user_data.get("role", ROLE_CLIENT)
     state = context.user_data.get("state", "idle")
+
+    if text == t(lang, "menu_switch_interface"):
+        context.user_data.clear()
+        await message.reply_text(
+            "\n".join([I18N["uz"]["choose_interface"], I18N["ru"]["choose_interface"], I18N["en"]["choose_interface"]]),
+            reply_markup=role_keyboard(),
+        )
+        return
+
+    if role == ROLE_ADMIN:
+        if text == t(lang, "admin_menu_dashboard"):
+            await show_admin_dashboard(update, context)
+            return
+        if text == t(lang, "admin_menu_bookings"):
+            await show_admin_bookings(update, context)
+            return
+        if text == t(lang, "admin_menu_questions"):
+            await show_admin_questions(update, context)
+            return
+        await show_menu(update, context)
+        return
 
     if state == "booking_name":
         context.user_data["booking_name"] = text
@@ -321,7 +463,15 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     if state == "asking_question":
         context.user_data["state"] = "idle"
-        await message.reply_text(t(lang, "ask_reply"), reply_markup=menu_keyboard(lang))
+        DEMO_QUESTIONS.append(
+            {
+                "chat_id": update.effective_chat.id,
+                "name": update.effective_user.full_name,
+                "text": text,
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            }
+        )
+        await message.reply_text(t(lang, "ask_reply"), reply_markup=client_menu_keyboard(lang))
         return
 
     if text == t(lang, "menu_services"):
@@ -343,7 +493,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     lang = context.user_data.get("lang", "en")
     if context.user_data.get("state") != "booking_phone":
-        await update.effective_message.reply_text(t(lang, "menu_text"), reply_markup=menu_keyboard(lang))
+        await update.effective_message.reply_text(t(lang, "menu_text"), reply_markup=client_menu_keyboard(lang))
         return
 
     contact = update.effective_message.contact
@@ -356,7 +506,7 @@ async def finish_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, pho
     service_key = context.user_data.get("booking_service")
     if not service_key or service_key not in SERVICE_BY_KEY:
         context.user_data["state"] = "idle"
-        await update.effective_message.reply_text(t(lang, "menu_text"), reply_markup=menu_keyboard(lang))
+        await update.effective_message.reply_text(t(lang, "menu_text"), reply_markup=client_menu_keyboard(lang))
         return
 
     service = SERVICE_BY_KEY[service_key]
@@ -386,12 +536,22 @@ async def finish_booking(update: Update, context: ContextTypes.DEFAULT_TYPE, pho
             },
         }
     )
+    DEMO_BOOKINGS.append(
+        {
+            "chat_id": update.effective_chat.id,
+            "name": context.user_data.get("booking_name", update.effective_user.full_name),
+            "phone": phone,
+            "service": service_name,
+            "time": slot["time"],
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+        }
+    )
 
-    await update.effective_message.reply_text(t(lang, "confirm"), reply_markup=menu_keyboard(lang))
+    await update.effective_message.reply_text(t(lang, "confirm"), reply_markup=client_menu_keyboard(lang))
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if "lang" not in context.user_data:
+    if "role" not in context.user_data or "lang" not in context.user_data:
         await start(update, context)
         return
     await show_menu(update, context)
